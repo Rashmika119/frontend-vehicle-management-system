@@ -1,0 +1,71 @@
+<div class="Vehicle-display py-4 px-2">
+  <div class="display-header">
+    {{ title }}
+  </div>
+
+  <div class="display-body">
+    <div class="row mb-2">
+      <div class="col-md-2">Vehicle Model Filter:</div>
+      <div class="col-md-4">
+        <input
+          type="text"
+          [(ngModel)]="selectedModel"
+          (input)="searchVehiclesByModel()"
+          placeholder="Enter model name"
+        />
+      </div>
+    </div>
+
+    @if (selectedModel) {
+      <div class="row mb-2">
+        <div class="col-md-6">
+          <h6>Filtered by: {{ selectedModel }}</h6>
+        </div>
+      </div>
+    }
+
+    <div class="response-table">
+      @if (vehicles$ | async; as vehicles) {
+        @if (vehicles.length > 0) {
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>First_Name</th>
+                <th>Last_Name</th>
+                <th>Email</th>
+                <th>Car_Make</th>
+                <th>Car_Model</th>
+                <th>Vin</th>
+                <th>Manufactured_Date</th>
+                <th>Age_Of_the_Vehicle</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (vehicle of vehicles; track vehicle.id) {
+                <tr>
+                  <td>{{ vehicle.first_name }}</td>
+                  <td>{{ vehicle.last_name }}</td>
+                  <td>{{ vehicle.email }}</td>
+                  <td>{{ vehicle.car_make }}</td>
+                  <td>{{ vehicle.car_model }}</td>
+                  <td>{{ vehicle.vin }}</td>
+                  <td>{{ vehicle.manufactured_date }}</td>
+                  <td>{{ vehicle.age_of_the_vehicle }}</td>
+                  <td>
+                    <div class="buttons d-flex gap-3">
+                    <button type="button" class="btn btn-primary" (click)="selectedVehicle = vehicle" >Edit</button>
+                    <button type="button" class="btn btn-danger" (click)="deleteVehicle(vehicle.id)">Delete</button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      } @else {
+        <p>No Vehicles Found</p>
+      }
+    </div>
+  </div>
+</div>

@@ -1,0 +1,43 @@
+<div class="container py-3">
+
+  <!-- Login warning -->
+  <div *ngIf="!clientName" class="alert alert-danger" role="alert">
+    You must login first to export vehicles. Please sign in.
+  </div>
+
+  <!-- Export section -->
+  <div class="card p-3 mb-4" [class.disabled-section]="!clientName">
+    <h5>Export Vehicles CSV</h5>
+
+    <div class="input-group mb-3">
+      <span class="input-group-text">Vehicle Age</span>
+      <input type="number"
+             class="form-control"
+             [(ngModel)]="ageOfVehicle"
+             placeholder="Enter minimum age"
+             [disabled]="!clientName">
+    </div>
+
+    <button class="btn btn-success"
+            (click)="exportCsv()"
+            [disabled]="!ageOfVehicle || !clientName">
+      Export CSV
+    </button>
+  </div>
+
+  <!-- Notification alert -->
+  <div *ngIf="notificationMessage" class="alert alert-info mt-3">
+    {{ notificationMessage }}
+  </div>
+
+  <!-- Download popup modal -->
+  <div *ngIf="showDownloadPopup" class="modal-backdrop">
+    <div class="modal-box">
+      <h5>Export Completed</h5>
+      <p>Your file is ready to download.</p>
+      <button class="btn btn-primary" (click)="downloadCsv()">Download</button>
+      <button class="btn btn-secondary ms-2" (click)="showDownloadPopup = false">Close</button>
+    </div>
+  </div>
+
+</div>
