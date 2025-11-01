@@ -1,8 +1,8 @@
-import { Injectable } from "@angular/core";
+import { Injectable } from '@angular/core';
 import { Apollo, gql } from 'apollo-angular';
-import { map, Observable } from "rxjs";
-import { Vehicle } from "../vehicle/vehicle.model";
-import { VehicleRecord } from "../record/record.model";
+import { map, Observable } from 'rxjs';
+import { Vehicle } from '../vehicle/vehicle.model';
+import { CreateRecordDTO, UpdateRecordDTO, VehicleRecord } from '../record/record.model';
 
 @Injectable({
     providedIn: 'root',
@@ -10,6 +10,7 @@ import { VehicleRecord } from "../record/record.model";
 export class VehiclesGraphqlService {
     constructor(private apollo: Apollo) { }
 
+    // Get all vehicles
     getVehicles(): Observable<Vehicle[]> {
         console.log('GraphQL: Fetching all vehicles...');
         return this.apollo
@@ -39,10 +40,10 @@ export class VehiclesGraphqlService {
             );
     }
 
+    // Update vehicle
     updateVehicle(id: string, vehicle: Vehicle): Observable<any> {
         console.log('GraphQL: Updating vehicle:', id, vehicle);
 
-        // Format date to ensure it's in the correct format
         const formatDate = (date: string | Date): string => {
             if (date instanceof Date) {
                 return date.toISOString().split('T')[0];
@@ -112,7 +113,7 @@ export class VehiclesGraphqlService {
         );
     }
 
-
+    // Search by model
     searchByModel(car_model: string): Observable<Vehicle[]> {
         console.log('GraphQL: Searching by model:', car_model);
         return this.apollo.watchQuery({
@@ -134,7 +135,7 @@ export class VehiclesGraphqlService {
             variables: {
                 search: { car_model }
             },
-            
+            fetchPolicy: 'network-only'
         })
             .valueChanges
             .pipe(
@@ -145,23 +146,26 @@ export class VehiclesGraphqlService {
             );
     }
 
+    // Delete vehicle
     deleteVehicle(id: string): Observable<boolean> {
         console.log('GraphQL: Deleting vehicle:', id);
         return this.apollo.mutate({
             mutation: gql`
-      mutation DeleteVehicle($id: String!) {
-        removeVehicle(id: $id)
-      }
-    `,
+                mutation DeleteVehicle($id: String!) {
+                    removeVehicle(id: $id)
+                }
+            `,
             variables: { id }
         }).pipe(
             map((result: any) => {
                 console.log('GraphQL: Delete successful');
-                return result.data?.removeVehicle ?? false;
+                return result.data?.removeVehicle ?? true;
             })
         );
     }
-        findVehicleByVin(vin: string): Observable<Vehicle | null> {
+
+    // Find vehicle by VIN with records
+    findVehicleByVin(vin: string): Observable<Vehicle | null> {
         console.log('GraphQL: Searching vehicle by VIN:', vin);
         return this.apollo
             .watchQuery<{ findVehicleByVin: Vehicle | null }>({
@@ -198,6 +202,7 @@ export class VehiclesGraphqlService {
             );
     }
 
+    // Get records by VIN
     getRecordByVin(vin: string): Observable<VehicleRecord[]> {
         console.log('GraphQL: Fetching records for VIN:', vin);
         return this.apollo
@@ -227,6 +232,7 @@ export class VehiclesGraphqlService {
             );
     }
 
+    // Get all unique VINs
     getAllUniqueVins(): Observable<string[]> {
         console.log('GraphQL: Fetching all unique VINs...');
         return this.apollo
@@ -253,8 +259,35 @@ export class VehiclesGraphqlService {
             );
     }
 
-    updateVehicleRecord(id: string, updateData: Partial<VehicleRecord>): Observable<VehicleRecord> {
-        console.log('GraphQL: Updating record:', id);
+    // Create vehicle record
+    createVehicleRecord(recordData: CreateRecordDTO): Observable<VehicleRecord> {
+        console.log('GraphQL: Creating record:', recordData);
+        return this.apollo
+            .mutate<{ createVehicleRecord: VehicleRecord }>({
+                mutation: gql`
+                    mutation CreateVehicleRecord($vehicleRecordInput: VehicleRecordCreateDTO!) {
+                        createVehicleRecord(vehicleRecordInput: $vehicleRecordInput) {
+                            id
+                            vin
+                            category
+                            repair_date
+                            description
+                        }
+                    }
+                `,
+                variables: { vehicleRecordInput: recordData },
+            })
+            .pipe(
+                map((res: any) => {
+                    console.log('Record created:', res.data?.createVehicleRecord);
+                    return res.data?.createVehicleRecord;
+                })
+            );
+    }
+
+    // Update vehicle record
+    updateVehicleRecord(id: string, updateData: UpdateRecordDTO): Observable<VehicleRecord> {
+        console.log('GraphQL: Updating record:', id, updateData);
         return this.apollo
             .mutate<{ updateVehicleRecord: VehicleRecord }>({
                 mutation: gql`
@@ -278,6 +311,7 @@ export class VehiclesGraphqlService {
             );
     }
 
+    // Delete vehicle record
     deleteVehicleRecord(id: string): Observable<boolean> {
         console.log('GraphQL: Deleting record:', id);
         return this.apollo
@@ -292,7 +326,7 @@ export class VehiclesGraphqlService {
             .pipe(
                 map((res: any) => {
                     console.log('Record deleted:', res.data?.removeVehicleRecord);
-                    return res.data?.removeVehicleRecord ?? false;
+                    return res.data?.removeVehicleRecord ?? true;
                 })
             );
     }

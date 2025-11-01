@@ -1,162 +1,316 @@
-import { Component, OnInit } from '@angular/core';
-import { FormControl, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Observable, Subscription } from 'rxjs';
-import { Vehicle } from '../vehicle/vehicle.model'; // Assuming location
-import { VehicleRecord } from './record.model'; // Assuming location
+import { Vehicle } from '../vehicle/vehicle.model';
+import { CreateRecordDTO, UpdateRecordDTO, VehicleRecord } from './record.model';
 import { VehicleRecordService } from './record.service';
 import { CommonModule, DatePipe } from '@angular/common';
- // Assuming location
 
 @Component({
     selector: 'veh-record',
-  standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, DatePipe],
-  templateUrl: './record.html',
-  styleUrls: ['./record.scss'],
-
+    standalone: true,
+    imports: [CommonModule, FormsModule, ReactiveFormsModule, DatePipe],
+    templateUrl: './record.html',
+    styleUrls: ['./record.scss'],
 })
-export class RecordComponent implements OnInit {
-  // --- Properties for VIN Search Section (Top Card) ---
-  vinValue: string = '';
-  searched: boolean = false;
-  vehicle$!: Observable<Vehicle | null>;
+export class RecordComponent implements OnInit, OnDestroy {
 
-  // --- Properties for Manage Records Section (Bottom Card) ---
-  vins: string[] = []; // This array is what the dropdown binds to.
-  selectedVin: string | null = null;
-  
-  // Storage for all records of the currently selected VIN, used for local filtering
-  allRecordsForSelectedVin: VehicleRecord[] = []; 
-  filteredRecords: VehicleRecord[] = [];
-  isVinsLoading: boolean = true;
-  loading: boolean = false; // For the records spinner
-  
-  // Reactive Form for filtering
-  filterForm: FormGroup;
-  private vinSubscription: Subscription | undefined;
-  private recordsSubscription: Subscription | undefined;
+    vinValue: string = '';
+    searched: boolean = false;
+    vehicle$!: Observable<Vehicle | null>;
+    searchLoading: boolean = false;
 
-  constructor(private recordService: VehicleRecordService) {
-    // Initialize the filter form
-    this.filterForm = new FormGroup({
-      category: new FormControl(''),
-      description: new FormControl(''),
-    });
-  }
+    vins: string[] = [];
+    selectedVin: string | null = null;
+    allRecordsForSelectedVin: VehicleRecord[] = [];
+    filteredRecords: VehicleRecord[] = [];
+    isVinsLoading: boolean = true;
+    loading: boolean = false;
 
-  // 👇 FIX: Fetch VINs when the component loads
-  ngOnInit(): void {
-this.recordService.getAllVins().subscribe({
-        next: (vinsArray: string[]) => {
-            this.vins = vinsArray;
-            this.isVinsLoading = false; // <-- Set to false on success
-        },
-        error: (err) => {
-            console.error('Error fetching VINs for dropdown:', err);
-            this.isVinsLoading = false; // <-- Set to false on error
-        }
-    });    this.vinSubscription = this.recordService.getAllVins().subscribe({
-      next: (vinsArray: string[]) => {
-        this.vins = vinsArray;
-      },
-      error: (err) => {
-        console.error('Error fetching VINs for dropdown:', err);
-      }
-    });
+    filterForm: FormGroup;
 
-    // 2. Subscribe to filter form changes to automatically apply the filter
-    this.filterForm.valueChanges.subscribe(() => {
-        this.applyFilter();
-    });
-  }
-  
-  // Ensure we clean up subscriptions on destroy
-  ngOnDestroy(): void {
-    this.vinSubscription?.unsubscribe();
-    this.recordsSubscription?.unsubscribe();
-  }
+    showCreateModal: boolean = false;
+    showUpdateModal: boolean = false;
+    recordForm: FormGroup;
+    editingRecord: VehicleRecord | null = null;
 
-  // --- Methods for Manage Records Section ---
-  
-  // Called when the user selects a VIN from the dropdown
-  onVinSelect(): void {
-    // Clear previous records and show loading state
-    this.allRecordsForSelectedVin = [];
-    this.filteredRecords = [];
-    this.loading = false;
-    this.recordsSubscription?.unsubscribe(); // Unsubscribe from previous fetch
 
-    if (this.selectedVin) {
-      this.loading = true; // Show loading spinner
+    private vinSubscription: Subscription | undefined;
+    private recordsSubscription: Subscription | undefined;
+
+    constructor(private recordService: VehicleRecordService) {
+       
+        this.filterForm = new FormGroup({
+            category: new FormControl(''),
+            description: new FormControl(''),
+        });
+
       
-      // Fetch the records for the selected VIN
-      this.recordsSubscription = this.recordService.getRecordsByVin(this.selectedVin).subscribe({
-        next: (records: VehicleRecord[]) => {
-          this.allRecordsForSelectedVin = records;
-          this.applyFilter(); // Apply any existing filter after fetching
-          this.loading = false;
-        },
-        error: (err) => {
-          console.error('Error fetching records by VIN:', err);
-          this.loading = false;
+        this.recordForm = new FormGroup({
+            vin: new FormControl('', Validators.required),
+            category: new FormControl('', Validators.required),
+            repair_date: new FormControl('', Validators.required),
+            description: new FormControl('', Validators.required),
+        });
+    }
+
+    ngOnInit(): void {
+
+        this.vinSubscription = this.recordService.getAllVins().subscribe({
+            next: (vinsArray: string[]) => {
+                this.vins = vinsArray;
+                this.isVinsLoading = false;
+                console.log('VINs loaded:', vinsArray);
+            },
+            error: (err) => {
+                console.error('Error fetching VINs:', err);
+                this.isVinsLoading = false;
+            }
+        });
+
+        this.filterForm.valueChanges.subscribe(() => {
+            this.applyFilter();
+        });
+    }
+
+    ngOnDestroy(): void {
+        this.vinSubscription?.unsubscribe();
+        this.recordsSubscription?.unsubscribe();
+    }
+
+    // ===== SEARCH SECTION =====
+    findVehicleByVin(): void {
+        if (!this.vinValue.trim()) {
+            alert('Please enter a VIN');
+            return;
         }
-      });
-    }
-  }
 
-  // Applies the local filter based on the form inputs
-  applyFilter(): void {
-    if (!this.allRecordsForSelectedVin.length) {
-      this.filteredRecords = [];
-      return;
+        this.searched = true;
+        this.searchLoading = true;
+        console.log('🔍 Searching for VIN:', this.vinValue);
+
+        this.vehicle$ = this.recordService.findVehicleByVin(this.vinValue.trim());
     }
 
-    const { category, description } = this.filterForm.value;
-    const lowerCategory = (category || '').toLowerCase();
-    const lowerDescription = (description || '').toLowerCase();
+    clearSearch(): void {
+        this.vinValue = '';
+        this.searched = false;
+        this.vehicle$ = new Observable<Vehicle | null>();
+    }
 
-    this.filteredRecords = this.allRecordsForSelectedVin.filter(record => {
-      const categoryMatch = !lowerCategory || record.category.toLowerCase().includes(lowerCategory);
-      const descriptionMatch = !lowerDescription || record.description.toLowerCase().includes(lowerDescription);
-      return categoryMatch && descriptionMatch;
-    });
-  }
-  
-  // A required method for better performance with *ngFor
-  trackById(index: number, item: VehicleRecord): string | undefined {
-    return item.id; 
-  }
 
-  // --- Other Methods (for completeness, assuming they are implemented) ---
-  
-  findVehicleByVin(): void {
-    this.searched = true;
-    this.vehicle$ = this.recordService.findVehicleByVin(this.vinValue);
-  }
+    openCreateFromSearch(vin: string): void {
+        this.recordForm.patchValue({ vin });
+        this.showCreateModal = true;
+    }
 
-  clearSearch(): void {
-    this.vinValue = '';
-    this.searched = false;
-    this.vehicle$ = new Observable<Vehicle | null>(); // Clear the observable
-  }
-  
-  onUpdate(record: VehicleRecord): void {
-    // Implementation for update logic (e.g., open a modal)
-    console.log('Update record:', record);
-  }
+    // ===== DROPDOWN SECTION =====
+    onVinSelect(): void {
+        this.allRecordsForSelectedVin = [];
+        this.filteredRecords = [];
+        this.loading = false;
+        this.recordsSubscription?.unsubscribe();
 
-  onDelete(record: VehicleRecord): void {
-    if (record.id) {
+        if (this.selectedVin) {
+            this.loading = true;
+            console.log('Loading records for VIN:', this.selectedVin);
+
+            this.recordsSubscription = this.recordService.getRecordsByVin(this.selectedVin).subscribe({
+                next: (records: VehicleRecord[]) => {
+                    console.log('Records loaded:', records);
+                    this.allRecordsForSelectedVin = records;
+                    this.applyFilter();
+                    this.loading = false;
+                },
+                error: (err) => {
+                    console.error('Error fetching records:', err);
+                    this.loading = false;
+                }
+            });
+        }
+    }
+
+    applyFilter(): void {
+        if (!this.allRecordsForSelectedVin.length) {
+            this.filteredRecords = [];
+            return;
+        }
+
+        const { category, description } = this.filterForm.value;
+        const lowerCategory = (category || '').toLowerCase();
+        const lowerDescription = (description || '').toLowerCase();
+
+        this.filteredRecords = this.allRecordsForSelectedVin.filter(record => {
+            const categoryMatch = !lowerCategory || record.category.toLowerCase().includes(lowerCategory);
+            const descriptionMatch = !lowerDescription || record.description.toLowerCase().includes(lowerDescription);
+            return categoryMatch && descriptionMatch;
+        });
+
+        console.log('Filtered records:', this.filteredRecords.length);
+    }
+
+
+    openCreateModal(vin?: string): void {
+        this.recordForm.reset();
+        if (vin) {
+            this.recordForm.patchValue({ vin });
+        } else if (this.selectedVin) {
+            this.recordForm.patchValue({ vin: this.selectedVin });
+        }
+        this.showCreateModal = true;
+    }
+
+    createRecord(): void {
+        if (this.recordForm.invalid) {
+            alert('Please fill all required fields');
+            return;
+        }
+
+        const formValue = this.recordForm.value;
+        const createData: CreateRecordDTO = {
+            vin: formValue.vin,
+            category: formValue.category,
+            repair_date: formValue.repair_date,
+            description: formValue.description,
+        };
+
+        console.log('Creating record:', createData);
+
+        this.recordService.createRecord(createData).subscribe({
+            next: (created) => {
+                console.log('Record created:', created);
+                alert('Record created successfully!');
+                this.showCreateModal = false;
+                this.recordForm.reset();
+                
+                if (this.selectedVin === createData.vin) {
+                    this.onVinSelect();
+                }
+                
+                if (this.vinValue === createData.vin) {
+                    this.findVehicleByVin();
+                }
+            },
+            error: (err) => {
+                console.error('Create failed:', err);
+                alert('Failed to create record: ' + (err.message || 'Unknown error'));
+            }
+        });
+    }
+
+    cancelCreate(): void {
+        this.showCreateModal = false;
+        this.recordForm.reset();
+    }
+
+    openUpdateModal(record: VehicleRecord): void {
+        this.editingRecord = record;
+
+        let dateValue = '';
+        if (record.repair_date) {
+            if (record.repair_date instanceof Date) {
+                dateValue = record.repair_date.toISOString().split('T')[0];
+            } else {
+                dateValue = record.repair_date.toString().split('T')[0];
+            }
+        }
+
+        this.recordForm.patchValue({
+            vin: record.vin,
+            category: record.category,
+            repair_date: dateValue,
+            description: record.description,
+        });
+        
+        this.recordForm.get('vin')?.disable();
+        this.showUpdateModal = true;
+    }
+
+    updateRecord(): void {
+        if (!this.editingRecord || !this.editingRecord.id) {
+            alert('No record selected for update');
+            return;
+        }
+
+        if (this.recordForm.invalid) {
+            alert('Please fill all required fields');
+            return;
+        }
+
+        const formValue = this.recordForm.getRawValue();
+        const updateData: UpdateRecordDTO = {
+            category: formValue.category,
+            repair_date: formValue.repair_date,
+            description: formValue.description,
+        };
+
+        console.log('Updating record:', this.editingRecord.id, updateData);
+
+        this.recordService.updateRecord(this.editingRecord.id, updateData).subscribe({
+            next: (updated) => {
+                console.log('Record updated:', updated);
+                alert('Record updated successfully!');
+                this.showUpdateModal = false;
+                this.recordForm.reset();
+                this.recordForm.get('vin')?.enable();
+                this.editingRecord = null;
+                
+                if (this.selectedVin) {
+                    this.onVinSelect();
+                }
+                if (this.vinValue) {
+                    this.findVehicleByVin();
+                }
+            },
+            error: (err) => {
+                console.error('Update failed:', err);
+                alert('Failed to update record: ' + (err.message || 'Unknown error'));
+            }
+        });
+    }
+
+    cancelUpdate(): void {
+        this.showUpdateModal = false;
+        this.recordForm.reset();
+        this.recordForm.get('vin')?.enable();
+        this.editingRecord = null;
+    }
+
+    deleteRecord(record: VehicleRecord): void {
+        if (!record.id) {
+            alert('Cannot delete record without ID');
+            return;
+        }
+
+        const confirmMsg = `Are you sure you want to delete this record?\n\nCategory: ${record.category}\nDate: ${record.repair_date}\nDescription: ${record.description}`;
+        
+        if (!confirm(confirmMsg)) {
+            return;
+        }
+
+        console.log('Deleting record:', record.id);
+
         this.recordService.deleteRecord(record.id).subscribe({
             next: (success) => {
                 if (success) {
-                    console.log(`Record ${record.id} deleted.`);
-                    // Re-fetch or locally remove the record to update the UI
-                    this.onVinSelect(); // Easiest way to refresh the list
+                    console.log('Record deleted:', record.id);
+                    alert('Record deleted successfully!');
+                    
+                    if (this.selectedVin) {
+                        this.onVinSelect();
+                    }
+                    if (this.vinValue) {
+                        this.findVehicleByVin();
+                    }
                 }
             },
-            error: (err) => console.error('Delete failed:', err)
+            error: (err) => {
+                console.error('Delete failed:', err);
+                alert('Failed to delete record: ' + (err.message || 'Unknown error'));
+            }
         });
     }
-  }
+    trackById(index: number, item: VehicleRecord): string | undefined {
+        return item.id;
+    }
 }
