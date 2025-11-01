@@ -1,0 +1,143 @@
+<div class="container py-4">
+
+    <div class="card p-4 mb-4">
+        <h3 class="mb-4">Search Vehicle Records by VIN</h3>
+
+        <div class="input-group mb-3">
+            <input type="text" class="form-control" [(ngModel)]="vinValue"
+                placeholder="Enter VIN (e.g., 1C4RDHAG0KC123456)" (keyup.enter)="findVehicleByVin()" />
+            <button class="btn btn-primary" (click)="findVehicleByVin()">Search</button>
+            <button *ngIf="searched" class="btn btn-secondary" (click)="clearSearch()">Clear</button>
+        </div>
+
+        <div *ngIf="vehicle$ | async as vehicle; else searchingOrNoVehicle">
+            <div class="card mt-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Vehicle Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>VIN:</strong> {{ vehicle.vin }}</p>
+                            <p><strong>Owner:</strong> {{ vehicle.first_name }} {{ vehicle.last_name }}</p>
+                            <p><strong>Email:</strong> {{ vehicle.email }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Make:</strong> {{ vehicle.car_make }}</p>
+                            <p><strong>Model:</strong> {{ vehicle.car_model }}</p>
+                            <p><strong>Year:</strong> {{ vehicle.manufactured_date | date:'yyyy' }}</p>
+                            <p><strong>Age:</strong> {{ vehicle.age_of_the_vehicle }} years</p>
+                        </div>
+                    </div>
+
+                    <h6 class="mt-4 mb-3">Repair History</h6>
+
+                    <div *ngIf="(vehicle.vehicleRecords ?? []).length > 0; else noRecord">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Category</th>
+                                        <th>Repair Date</th>
+                                        <th>Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr *ngFor="let record of vehicle.vehicleRecords">
+                                        <td>{{ record.category }}</td>
+                                        <td>{{ record.repair_date | date:'yyyy-MM-dd' }}</td>
+                                        <td>{{ record.description }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <ng-template #noRecord>
+                        <div class="alert alert-info">
+                            No repair records found for this vehicle.
+                        </div>
+                    </ng-template>
+
+                </div>
+            </div>
+        </div>
+
+        <ng-template #searchingOrNoVehicle>
+            <div *ngIf="searched" class="mt-4">
+                <div *ngIf="(vehicle$ | async) === null" class="alert alert-warning">
+                    <h5>No Vehicle Found</h5>
+                    <p>No vehicle found with VIN: <strong>{{ vinValue }}</strong></p>
+                </div>
+                <div *ngIf="!(vehicle$ | async)" class="text-center">
+                     <div *ngIf="!loading">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p class="mt-2">Searching...</p>
+                     </div>
+                </div>
+            </div>
+        </ng-template>
+
+    </div>
+
+    <div class="card p-4">
+        <h3 class="mb-4">Manage Vehicle Records</h3>
+
+        <div class="mb-3">
+            <label for="vinSelect" class="form-label">Select VIN:</label>
+            <select id="vinSelect" class="form-select" [(ngModel)]="selectedVin" (change)="onVinSelect()">
+                <option [ngValue]="null">-- Select VIN --</option>
+                <option *ngFor="let vin of vins" [ngValue]="vin">{{ vin }}</option>
+            </select>
+        </div>
+
+        <form [formGroup]="filterForm" class="mb-3">
+            <div class="row g-2">
+                <div class="col-md-6">
+                    <input type="text" class="form-control" placeholder="Filter by Category"
+                        formControlName="category" (input)="applyFilter()" />
+                </div>
+                <div class="col-md-6">
+                    <input type="text" class="form-control" placeholder="Filter by Description"
+                        formControlName="description" (input)="applyFilter()" />
+                </div>
+            </div>
+        </form>
+
+        <div *ngIf="loading" class="text-center my-3">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p>Loading records...</p>
+        </div>
+
+        <div *ngIf="!loading && filteredRecords.length > 0">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th>Repair Date</th>
+                            <th>Description</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let record of filteredRecords; trackBy: trackById">
+                            <td>{{ record.category }}</td>
+                            <td>{{ record.repair_date | date: 'yyyy-MM-dd' }}</td>
+                            <td>{{ record.description }}</td>
+                            <td>
+                                <button class="btn btn-sm btn-warning me-2"
+                                    (click)="onUpdate(record)">Update</button>
+                                <button class="btn btn-sm btn-danger" (click)="onDelete(record)">Delete</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div *ngIf="!loading && selectedVin && filteredRecords.length === 0">
+            <div class="alert alert-info">No records found for selected VIN.</div>
+        </div>
+    </div>
+</div>

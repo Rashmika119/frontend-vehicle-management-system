@@ -1,70 +1,139 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Vehicle } from './vehicle.model';
-import { VehicleService } from './vehicle.service';
+
 import { Observable, Subscription, take } from 'rxjs';
 import { FormsModule } from '@angular/forms';
-import { AsyncPipe, CommonModule,} from '@angular/common';
+import { AsyncPipe, CommonModule, DatePipe } from '@angular/common';
+import { VehicleService } from './vehicle.service';
 
 @Component({
   selector: 'veh-vehicle',
-    imports: [
-    FormsModule, 
+  imports: [
+    FormsModule,
     AsyncPipe,
-    CommonModule,    
+    CommonModule,
+    DatePipe
   ],
   standalone: true,
   templateUrl: './vehicle.component.html',
   styleUrl: './vehicle.scss',
 })
 export class VehicleComponent implements OnInit, OnDestroy {
-  title: string = 'Employee Management Solution......';
+  title: string = 'Vehicle Management System';
   vehicles$!: Observable<Vehicle[]>;
-  searchText: string = ''
+  searchText: string = '';
   selectedModel: string = '';
   selectedVehicle: Vehicle | null = null;
-  subscription!: Subscription;
+  vehicleToDelete: Vehicle | null = null;
+
+  private subscriptions: Subscription = new Subscription();
+
   constructor(private vehicleService: VehicleService) { }
 
   ngOnInit(): void {
-
     this.loadVehicles();
   }
 
   loadVehicles(): void {
-    this.vehicles$ = this.vehicleService.getVehicles()
+    console.log('Loading vehicles...');
+    this.vehicles$ = this.vehicleService.getVehicles();
   }
 
   searchVehiclesByModel(): void {
-    if (!this.selectedModel) {
+    if (!this.selectedModel || this.selectedModel.trim() === '') {
+      console.log('Clearing filter, loading all vehicles');
       this.loadVehicles();
     } else {
+      console.log('Searching by model:', this.selectedModel);
       this.vehicles$ = this.vehicleService.searchByModel(this.selectedModel);
     }
   }
 
+  clearFilter(): void {
+    this.selectedModel = '';
+    this.loadVehicles();
+  }
+
+  editVehicle(vehicle: Vehicle): void {
+    console.log('Editing vehicle:', vehicle.id);
+    this.selectedVehicle = { ...vehicle };
+  }
+
+  closeEditModal(): void {
+    this.selectedVehicle = null;
+  }
+
   updateVehicle(): void {
-    if (!this.selectedVehicle) return;
-    this.vehicleService.updateVehicles(this.selectedVehicle.id, this.selectedVehicle)
+    if (!this.selectedVehicle) {
+      console.error('No vehicle selected for update');
+      return;
+    }
+
+    console.log('Updating vehicle:', this.selectedVehicle.id);
+
+    const sub = this.vehicleService.updateVehicles(this.selectedVehicle.id, this.selectedVehicle)
       .subscribe({
         next: () => {
+          console.log('Vehicle updated successfully');
           this.loadVehicles();
           this.selectedVehicle = null;
+          alert('Vehicle updated successfully!');
         },
-        error: err => console.error('Update failed', err)
+        error: err => {
+          console.error(' Update failed:', err);
+          alert('Failed to update vehicle. Please try again.');
+        }
       });
+
+    this.subscriptions.add(sub);
   }
 
-  deleteVehicle(id: string): void {
-    this.vehicleService.deleteVehicle(id)
+  confirmDelete(vehicle: Vehicle): void {
+    console.log('Confirming delete for vehicle:', vehicle.id);
+    this.vehicleToDelete = vehicle;
+  }
+
+  cancelDelete(): void {
+    this.vehicleToDelete = null;
+  }
+
+  deleteVehicle(): Boolean {
+    if (!this.vehicleToDelete) {
+      console.error('No vehicle selected for deletion');
+      return false;
+    }
+
+    const vehicleId = this.vehicleToDelete.id;
+    console.log('Deleting vehicle:', vehicleId);
+
+    const sub = this.vehicleService.deleteVehicle(vehicleId)
       .pipe(take(1))
       .subscribe({
-        next: () => this.loadVehicles(),
-        error: err => console.error('Delete failed', err)
+        next: success => {
+          if (success) {
+            console.log('Vehicle deleted successfully');
+            this.vehicleToDelete = null;
+            this.loadVehicles();
+            alert('Vehicle deleted successfully!');
+          } else {
+            alert('Vehicle deletion failed.');
+          }
+        },
+        error: err => {
+          console.error('Delete failed:', err);
+          alert('Failed to delete vehicle. Please try again.');
+        }
       });
+
+    this.subscriptions.add(sub);
+    return true;
   }
+
 
   ngOnDestroy(): void {
-    this.subscription.unsubscribe();
+    if (this.subscriptions) {
+      this.subscriptions.unsubscribe();
+      console.log('Subscriptions cleaned up');
+    }
   }
-
 }

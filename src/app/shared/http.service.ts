@@ -47,8 +47,9 @@ private baseUrl = 'http://localhost:3000/file'; // Import/download endpoints
     }
   }
 
-  async downloadCsv(fileId: string, fileName?: string) {
-    const url = `${this.baseUrl}/download/${fileId}`;
+  async downloadCsv(jobId: string, fileName?: string) {
+    const url = `${this.jobUrl}/download/${jobId}`;
+    console.log('download url',url)
     try {
       const blob = await lastValueFrom(
         this.http.get(url, { responseType: 'blob' })
@@ -56,7 +57,7 @@ private baseUrl = 'http://localhost:3000/file'; // Import/download endpoints
 
       const link = document.createElement('a');
       link.href = window.URL.createObjectURL(blob);
-      link.download = fileName || `export-${fileId}.csv`;
+      link.download = fileName || `${jobId}.csv`;
       link.click();
       window.URL.revokeObjectURL(link.href);
       console.log('CSV download triggered');

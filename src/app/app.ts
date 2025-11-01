@@ -8,7 +8,7 @@ import { CommonModule } from '@angular/common';
 @Component({
   selector: 'veh-root',
   standalone: true,
-  imports: [VehicleComponent, RouterModule,ImportExportComponent,FormsModule,CommonModule],
+  imports: [RouterModule,FormsModule,CommonModule],
   templateUrl: './app.html', 
   styleUrls: ['./app.scss'],   
 })

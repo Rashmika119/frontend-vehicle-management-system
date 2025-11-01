@@ -21,7 +21,7 @@ export class VehicleService {
         return this.graphService.searchByModel(model);
     }
 
-    deleteVehicle(id: string): Observable<any> {
+    deleteVehicle(id: string): Observable<Boolean> {
         return this.graphService.deleteVehicle(id);
     }
 }

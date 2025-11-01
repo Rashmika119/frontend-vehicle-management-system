@@ -14,7 +14,7 @@ export const appConfig: ApplicationConfig = {
     provideApollo(() => {
       return new ApolloClient({
         cache: new InMemoryCache(),
-        link: new HttpLink({ uri: 'http://localhost:3000/graphql' }),
+        link: new HttpLink({ uri: 'http://localhost:3001/graphql' }),
       });
     }),
   ],
