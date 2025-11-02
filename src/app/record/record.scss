@@ -1,0 +1,25 @@
+/* --- Make modal backdrop solid --- */
+.modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.75) !important; /* darker, less transparent */
+}
+
+/* --- Make modal itself fully opaque --- */
+.modal-content {
+  background-color: #ffffff !important; /* solid white */
+  opacity: 1 !important;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.3); /* subtle shadow for clarity */
+  border-radius: 10px;
+}
+
+/* Optional: Make modal header/footer stand out */
+.modal-header,
+.modal-footer {
+  background-color: #f8f9fa; /* light gray */
+  border-color: #dee2e6;
+}
+
+/* Optional: smoother fade for the modal itself */
+.modal.fade.show {
+  opacity: 1 !important;
+  transition: opacity 0.2s ease-in-out;
+}

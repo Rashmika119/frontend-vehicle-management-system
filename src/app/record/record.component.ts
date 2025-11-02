@@ -1,6 +1,6 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Observable, Subscription } from 'rxjs';
+import { Observable, BehaviorSubject, Subscription } from 'rxjs';
 import { Vehicle } from '../vehicle/vehicle.model';
 import { CreateRecordDTO, UpdateRecordDTO, VehicleRecord } from './record.model';
 import { VehicleRecordService } from './record.service';
@@ -17,7 +17,6 @@ export class RecordComponent implements OnInit, OnDestroy {
 
     vinValue: string = '';
     searched: boolean = false;
-    vehicle$!: Observable<Vehicle | null>;
     searchLoading: boolean = false;
 
     vins: string[] = [];
@@ -28,24 +27,24 @@ export class RecordComponent implements OnInit, OnDestroy {
     loading: boolean = false;
 
     filterForm: FormGroup;
-
-    showCreateModal: boolean = false;
-    showUpdateModal: boolean = false;
     recordForm: FormGroup;
-    editingRecord: VehicleRecord | null = null;
+    editingRecord: VehicleRecord | null = null
+    showCreateModal: boolean = false;
+    showUpdateModal: boolean = false;;
 
+    // BehaviorSubject to update search result dynamically
+    vehicle$: BehaviorSubject<Vehicle | null> = new BehaviorSubject<Vehicle | null>(null);
 
     private vinSubscription: Subscription | undefined;
     private recordsSubscription: Subscription | undefined;
 
-    constructor(private recordService: VehicleRecordService) {
-       
+    constructor(private recordService: VehicleRecordService, private cdr: ChangeDetectorRef) {
+
         this.filterForm = new FormGroup({
             category: new FormControl(''),
             description: new FormControl(''),
         });
 
-      
         this.recordForm = new FormGroup({
             vin: new FormControl('', Validators.required),
             category: new FormControl('', Validators.required),
@@ -89,44 +88,50 @@ export class RecordComponent implements OnInit, OnDestroy {
         this.searchLoading = true;
         console.log('🔍 Searching for VIN:', this.vinValue);
 
-        this.vehicle$ = this.recordService.findVehicleByVin(this.vinValue.trim());
+        this.recordService.findVehicleByVin(this.vinValue.trim()).subscribe({
+            next: (vehicle) => {
+                console.log('✅ Vehicle found:', vehicle);
+                this.vehicle$.next(vehicle); // push to async pipe
+                this.searchLoading = false;
+            },
+            error: (err) => {
+                console.error('Error fetching vehicle:', err);
+                this.vehicle$.next(null);
+                this.searchLoading = false;
+            },
+        });
     }
 
     clearSearch(): void {
         this.vinValue = '';
         this.searched = false;
-        this.vehicle$ = new Observable<Vehicle | null>();
+        this.vehicle$.next(null);
     }
 
-
-    openCreateFromSearch(vin: string): void {
-        this.recordForm.patchValue({ vin });
-        this.showCreateModal = true;
-    }
-
-    // ===== DROPDOWN SECTION =====
     onVinSelect(): void {
-        this.allRecordsForSelectedVin = [];
-        this.filteredRecords = [];
-        this.loading = false;
+        this.loading = true;
         this.recordsSubscription?.unsubscribe();
 
         if (this.selectedVin) {
-            this.loading = true;
             console.log('Loading records for VIN:', this.selectedVin);
 
             this.recordsSubscription = this.recordService.getRecordsByVin(this.selectedVin).subscribe({
                 next: (records: VehicleRecord[]) => {
-                    console.log('Records loaded:', records);
                     this.allRecordsForSelectedVin = records;
                     this.applyFilter();
                     this.loading = false;
+                    this.cdr.detectChanges();
                 },
                 error: (err) => {
                     console.error('Error fetching records:', err);
                     this.loading = false;
+                    this.cdr.detectChanges();
                 }
             });
+        } else {
+            this.filteredRecords = [];
+            this.allRecordsForSelectedVin = [];
+            this.cdr.detectChanges();
         }
     }
 
@@ -149,14 +154,11 @@ export class RecordComponent implements OnInit, OnDestroy {
         console.log('Filtered records:', this.filteredRecords.length);
     }
 
-
     openCreateModal(vin?: string): void {
         this.recordForm.reset();
-        if (vin) {
-            this.recordForm.patchValue({ vin });
-        } else if (this.selectedVin) {
-            this.recordForm.patchValue({ vin: this.selectedVin });
-        }
+        if (vin) this.recordForm.patchValue({ vin });
+        else if (this.selectedVin) this.recordForm.patchValue({ vin: this.selectedVin });
+
         this.showCreateModal = true;
     }
 
@@ -182,12 +184,16 @@ export class RecordComponent implements OnInit, OnDestroy {
                 alert('Record created successfully!');
                 this.showCreateModal = false;
                 this.recordForm.reset();
-                
-                if (this.selectedVin === createData.vin) {
+
+                if (!this.vins.includes(created.vin)) {
+                    this.vins.push(created.vin);
+                }
+
+                if (this.selectedVin === created.vin) {
                     this.onVinSelect();
                 }
-                
-                if (this.vinValue === createData.vin) {
+
+                if (this.vinValue === created.vin) {
                     this.findVehicleByVin();
                 }
             },
@@ -198,39 +204,9 @@ export class RecordComponent implements OnInit, OnDestroy {
         });
     }
 
-    cancelCreate(): void {
-        this.showCreateModal = false;
-        this.recordForm.reset();
-    }
-
-    openUpdateModal(record: VehicleRecord): void {
-        this.editingRecord = record;
-
-        let dateValue = '';
-        if (record.repair_date) {
-            if (record.repair_date instanceof Date) {
-                dateValue = record.repair_date.toISOString().split('T')[0];
-            } else {
-                dateValue = record.repair_date.toString().split('T')[0];
-            }
-        }
-
-        this.recordForm.patchValue({
-            vin: record.vin,
-            category: record.category,
-            repair_date: dateValue,
-            description: record.description,
-        });
-        
-        this.recordForm.get('vin')?.disable();
-        this.showUpdateModal = true;
-    }
 
     updateRecord(): void {
-        if (!this.editingRecord || !this.editingRecord.id) {
-            alert('No record selected for update');
-            return;
-        }
+        if (!this.editingRecord || !this.editingRecord.id) return;
 
         if (this.recordForm.invalid) {
             alert('Please fill all required fields');
@@ -254,19 +230,20 @@ export class RecordComponent implements OnInit, OnDestroy {
                 this.recordForm.reset();
                 this.recordForm.get('vin')?.enable();
                 this.editingRecord = null;
-                
-                if (this.selectedVin) {
-                    this.onVinSelect();
-                }
-                if (this.vinValue) {
-                    this.findVehicleByVin();
-                }
+
+                if (this.selectedVin) this.onVinSelect();
+                if (this.vinValue) this.findVehicleByVin();
             },
             error: (err) => {
                 console.error('Update failed:', err);
                 alert('Failed to update record: ' + (err.message || 'Unknown error'));
             }
         });
+    }
+
+    cancelCreate(): void {
+        this.showCreateModal = false;
+        this.recordForm.reset();
     }
 
     cancelUpdate(): void {
@@ -276,33 +253,32 @@ export class RecordComponent implements OnInit, OnDestroy {
         this.editingRecord = null;
     }
 
+    openCreateFromSearch(vin: string): void {
+        this.openCreateModal(vin); 
+    }
+
+
+    openUpdateModal(record: VehicleRecord): void {
+        this.editingRecord = record;
+        this.recordForm.patchValue({
+            vin: record.vin,
+            category: record.category,
+            repair_date: record.repair_date,
+            description: record.description,
+        });
+        this.recordForm.get('vin')?.disable();
+        this.showUpdateModal = true;
+    }
+
     deleteRecord(record: VehicleRecord): void {
-        if (!record.id) {
-            alert('Cannot delete record without ID');
-            return;
-        }
-
-        const confirmMsg = `Are you sure you want to delete this record?\n\nCategory: ${record.category}\nDate: ${record.repair_date}\nDescription: ${record.description}`;
-        
-        if (!confirm(confirmMsg)) {
-            return;
-        }
-
-        console.log('Deleting record:', record.id);
+        if (!record.id) return;
+        if (!confirm('Are you sure you want to delete this record?')) return;
 
         this.recordService.deleteRecord(record.id).subscribe({
-            next: (success) => {
-                if (success) {
-                    console.log('Record deleted:', record.id);
-                    alert('Record deleted successfully!');
-                    
-                    if (this.selectedVin) {
-                        this.onVinSelect();
-                    }
-                    if (this.vinValue) {
-                        this.findVehicleByVin();
-                    }
-                }
+            next: () => {
+                alert('Record deleted successfully!');
+                if (this.selectedVin) this.onVinSelect();
+                if (this.vinValue === record.vin) this.findVehicleByVin();
             },
             error: (err) => {
                 console.error('Delete failed:', err);
@@ -310,7 +286,9 @@ export class RecordComponent implements OnInit, OnDestroy {
             }
         });
     }
-    trackById(index: number, item: VehicleRecord): string | undefined {
-        return item.id;
+
+    trackById(index: number, record: VehicleRecord): any {
+        return record.id;
     }
+
 }

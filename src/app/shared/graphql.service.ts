@@ -285,31 +285,30 @@ export class VehiclesGraphqlService {
             );
     }
 
-    // Update vehicle record
-    updateVehicleRecord(id: string, updateData: UpdateRecordDTO): Observable<VehicleRecord> {
-        console.log('GraphQL: Updating record:', id, updateData);
-        return this.apollo
-            .mutate<{ updateVehicleRecord: VehicleRecord }>({
-                mutation: gql`
-                    mutation UpdateVehicleRecord($id: String!, $vehicleRecordInput: VehicleRecordUpdateDTO!) {
-                        updateVehicleRecord(id: $id, vehicleRecordUpdateDTO: $vehicleRecordInput) {
-                            id
-                            vin
-                            category
-                            repair_date
-                            description
-                        }
+updateVehicleRecord(id: string, updateData: UpdateRecordDTO): Observable<VehicleRecord> {
+    console.log('GraphQL: Updating record:', id, updateData);
+    return this.apollo
+        .mutate<{ updateVehicleRecord: VehicleRecord }>({
+            mutation: gql`
+                mutation UpdateVehicleRecord($id: String!, $updateData: VehicleRecordUpdateDTO!) {
+                    updateVehicleRecord(id: $id, updateData: $updateData) {
+                        id
+                        vin
+                        category
+                        repair_date
+                        description
                     }
-                `,
-                variables: { id, vehicleRecordInput: updateData },
+                }
+            `,
+            variables: { id, updateData },
+        })
+        .pipe(
+            map((res: any) => {
+                console.log('Record updated:', res.data?.updateVehicleRecord);
+                return res.data?.updateVehicleRecord;
             })
-            .pipe(
-                map((res: any) => {
-                    console.log('Record updated:', res.data?.updateVehicleRecord);
-                    return res.data?.updateVehicleRecord;
-                })
-            );
-    }
+        );
+}
 
     // Delete vehicle record
     deleteVehicleRecord(id: string): Observable<boolean> {
