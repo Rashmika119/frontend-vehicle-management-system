@@ -1,364 +1,276 @@
 <div class="container-fluid py-4">
-    <div class="row">
-        <div class="col-12">
-            <h1 class="text-center mb-5">Vehicle Record Management</h1>
-        </div>
+  <div class="row">
+    <div class="col-12">
+      <h1 class="text-center mb-5">Vehicle Record Management</h1>
     </div>
+  </div>
 
-    <!-- SECTION 1: SEARCH BY VIN -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">Search Vehicle by VIN</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-8">
-                            <input 
-                                type="text" 
-                                [(ngModel)]="searchVin" 
-                                placeholder="Enter VIN" 
-                                class="form-control"
-                                (keyup.enter)="searchVehicle()"
-                            />
-                        </div>
-                        <div class="col-md-2">
-                            <button 
-                                (click)="searchVehicle()" 
-                                class="btn btn-primary w-100" 
-                                [disabled]="searchLoading"
-                            >
-                                <span *ngIf="!searchLoading">
-                                    <i class="bi bi-search"></i> Search
-                                </span>
-                                <span *ngIf="searchLoading">
-                                    <span class="spinner-border spinner-border-sm me-2"></span>
-                                    Searching...
-                                </span>
-                            </button>
-                        </div>
-                        <div class="col-md-2" *ngIf="searchPerformed">
-                            <button (click)="clearSearch()" class="btn btn-secondary w-100">
-                                <i class="bi bi-x-circle"></i> Clear
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Search Results -->
-                    <div *ngIf="searchPerformed && !searchLoading">
-                        <div *ngIf="searchedVehicle; else noVehicleFound">
-                            <!-- Vehicle Info Card -->
-                            <div class="alert alert-info">
-                                <h5 class="alert-heading">Vehicle Details</h5>
-                                <hr>
-                                <div class="row">
-                                    <div class="col-md-3">
-                                        <strong>VIN:</strong> {{ searchedVehicle.vin }}
-                                    </div>
-                                    <div class="col-md-3">
-                                        <strong>Make:</strong> {{ searchedVehicle.car_make }}
-                                    </div>
-                                    <div class="col-md-3">
-                                        <strong>Model:</strong> {{ searchedVehicle.car_model }}
-                                    </div>
-                                    <div class="col-md-3">
-                                        <strong>Year:</strong> {{ searchedVehicle.manufactured_date }}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Records Table -->
-                            <div *ngIf="searchedRecords.length > 0; else noRecords">
-                                <h6 class="mt-4 mb-3">Maintenance Records</h6>
-                                <div class="table-responsive">
-                                    <table class="table table-hover table-striped">
-                                        <thead class="table-dark">
-                                            <tr>
-                                                <th>Category</th>
-                                                <th>Repair Date</th>
-                                                <th>Description</th>
-                                                <th class="text-center">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr *ngFor="let record of searchedRecords">
-                                                <td>{{ record.category }}</td>
-                                                <td>{{ record.repair_date | date:'yyyy-MM-dd' }}</td>
-                                                <td>{{ record.description }}</td>
-                                                <td class="text-center">
-                                                    <button 
-                                                        (click)="openUpdateModal(record)" 
-                                                        class="btn btn-warning btn-sm me-2"
-                                                    >
-                                                        <i class="bi bi-pencil"></i> Update
-                                                    </button>
-                                                    <button 
-                                                        (click)="deleteRecord(record)" 
-                                                        class="btn btn-danger btn-sm"
-                                                    >
-                                                        <i class="bi bi-trash"></i> Delete
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-
-                            <ng-template #noRecords>
-                                <div class="alert alert-warning text-center mt-3">
-                                    <i class="bi bi-exclamation-triangle"></i>
-                                    No maintenance records found for this vehicle.
-                                </div>
-                            </ng-template>
-                        </div>
-
-                        <ng-template #noVehicleFound>
-                            <div class="alert alert-danger text-center">
-                                <i class="bi bi-x-circle"></i>
-                                No details available regarding this VIN.
-                            </div>
-                        </ng-template>
-                    </div>
-                </div>
+  <!-- SECTION 1: SEARCH BY VIN -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0">Search Vehicle by VIN</h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-3 mb-3">
+            <div class="col-md-8">
+              <input type="text" [(ngModel)]="searchVin" placeholder="Enter VIN" class="form-control"
+                (keyup.enter)="searchVehicle()" />
             </div>
-        </div>
-    </div>
-
-    <!-- SECTION 2: DROPDOWN SELECTION -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-header bg-success text-white">
-                    <h5 class="mb-0">Browse Records by VIN</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label for="vinSelect" class="form-label fw-bold">Select a VIN:</label>
-                            <select 
-                                id="vinSelect" 
-                                [(ngModel)]="selectedVin" 
-                                (change)="onVinSelect()" 
-                                class="form-select"
-                            >
-                                <option [ngValue]="null">-- Select VIN --</option>
-                                <option *ngFor="let vin of vins" [value]="vin">{{ vin }}</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Dropdown Records Table -->
-                    <div *ngIf="selectedVin && dropdownRecords.length > 0">
-                        <h6 class="mt-4 mb-3">Records for VIN: <span class="badge bg-info">{{ selectedVin }}</span></h6>
-                        <div class="table-responsive">
-                            <table class="table table-hover table-bordered">
-                                <thead class="table-dark">
-                                    <tr>
-                                        <th>Category</th>
-                                        <th>Repair Date</th>
-                                        <th>Description</th>
-                                        <th class="text-center">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr *ngFor="let record of dropdownRecords">
-                                        <td>{{ record.category }}</td>
-                                        <td>{{ record.repair_date | date:'yyyy-MM-dd' }}</td>
-                                        <td>{{ record.description }}</td>
-                                        <td class="text-center">
-                                            <button 
-                                                (click)="openUpdateModal(record)" 
-                                                class="btn btn-warning btn-sm me-2"
-                                            >
-                                                <i class="bi bi-pencil"></i> Update
-                                            </button>
-                                            <button 
-                                                (click)="deleteRecord(record)" 
-                                                class="btn btn-danger btn-sm"
-                                            >
-                                                <i class="bi bi-trash"></i> Delete
-                                            </button>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <div *ngIf="selectedVin && dropdownRecords.length === 0" class="alert alert-warning text-center mt-3">
-                        <i class="bi bi-exclamation-triangle"></i>
-                        No records found for this VIN.
-                    </div>
-                </div>
+            <div class="col-md-2">
+              <button (click)="searchVehicle()" class="btn btn-primary w-100" [disabled]="searchLoading">
+                <span *ngIf="!searchLoading">
+                  <i class="bi bi-search"></i> Search
+                </span>
+                <span *ngIf="searchLoading">
+                  <span class="spinner-border spinner-border-sm me-2"></span>
+                  Searching...
+                </span>
+              </button>
             </div>
-        </div>
-    </div>
-
-    <!-- SECTION 3: CREATE NEW RECORD -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-header bg-dark text-white">
-                    <h5 class="mb-0">Add New Record</h5>
-                </div>
-                <div class="card-body text-center">
-                    <button (click)="openCreateModal()" class="btn btn-success btn-lg">
-                        <i class="bi bi-plus-circle"></i> Create New Record
-                    </button>
-                </div>
+            <div class="col-md-2" *ngIf="searchPerformed">
+              <button (click)="clearSearch()" class="btn btn-secondary w-100">
+                <i class="bi bi-x-circle"></i> Clear
+              </button>
             </div>
-        </div>
-    </div>
-</div>
+          </div>
 
-<!-- UPDATE MODAL -->
-<div class="modal fade" [class.show]="isUpdateModalOpen" [style.display]="isUpdateModalOpen ? 'block' : 'none'" tabindex="-1">
+          <!-- Search Results -->
+          @if(searchPerformed && !searchLoading){
+            @if(searchedVehicle){
+              <div>
+                <h3>Vehicle Details</h3>
+                <p><strong>VIN:</strong> {{ searchedVehicle.vin }}</p>
+                <p><strong>Owner:</strong> {{ searchedVehicle.first_name }} {{ searchedVehicle.last_name }}</p>
+                <p><strong>Car:</strong> {{ searchedVehicle.car_make }} {{ searchedVehicle.car_model }}</p>
+                <p><strong>Manufactured:</strong> {{ searchedVehicle.manufactured_date }}</p>
+                <p><strong>Age:</strong> {{ searchedVehicle.age_of_the_vehicle }}</p>
+
+                <h4 class="mt-4">Records</h4>
+                @if(searchedRecords.length > 0){
+                  <div>
+                    @for(rec of searchedRecords; track rec.id){
+                      <div class="border p-3 mb-3 bg-light rounded">
+                        <p><strong>Category:</strong> {{ rec.category }}</p>
+                        <p><strong>Repair Date:</strong> {{ rec.repair_date | date:'yyyy-MM-dd' }}</p>
+                        <p class="mb-0"><strong>Description:</strong> {{ rec.description }}</p>
+                      </div>
+                    }
+                  </div>
+                }@else{
+                  <p class="text-muted">No records found</p>
+                }
+              </div>
+            }@else{
+              <div class="alert alert-danger text-center">
+                <i class="bi bi-x-circle"></i>
+                No details available regarding this VIN.
+              </div>
+            }
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 2: DROPDOWN SELECTION -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-header bg-success text-white">
+          <h5 class="mb-0">Browse Records by VIN</h5>
+        </div>
+        <div class="card-body">
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label for="vinSelect" class="form-label fw-bold">Select a VIN:</label>
+              <select id="vinSelect" [(ngModel)]="selectedVin" (change)="onVinSelect()" class="form-select">
+                <option [ngValue]="null">-- Select VIN --</option>
+                <option *ngFor="let vin of vins" [value]="vin">{{ vin }}</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Dropdown Records Table -->
+          <div *ngIf="selectedVin && dropdownRecords.length > 0">
+            <h6 class="mt-4 mb-3">Records for VIN: <span class="badge bg-info">{{ selectedVin }}</span></h6>
+            <div class="table-responsive">
+              <table class="table table-hover table-bordered">
+                <thead class="table-dark">
+                  <tr>
+                    <th>Category</th>
+                    <th>Repair Date</th>
+                    <th>Description</th>
+                    <th class="text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let record of dropdownRecords">
+                    <td>{{ record.category }}</td>
+                    <td>{{ record.repair_date | date:'yyyy-MM-dd' }}</td>
+                    <td>{{ record.description }}</td>
+                    <td class="text-center">
+                      <button (click)="openUpdateModal(record)" class="btn btn-warning btn-sm me-2">
+                        <i class="bi bi-pencil"></i> Update
+                      </button>
+                      <button (click)="deleteRecord(record)" class="btn btn-danger btn-sm">
+                        <i class="bi bi-trash"></i> Delete
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div *ngIf="selectedVin && dropdownRecords.length === 0" class="alert alert-warning text-center mt-3">
+            <i class="bi bi-exclamation-triangle"></i>
+            No records found for this VIN.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: CREATE NEW RECORD -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-header bg-dark text-white">
+          <h5 class="mb-0">Add New Record</h5>
+        </div>
+        <div class="card-body text-center">
+          <button (click)="openCreateModal()" class="btn btn-success btn-lg">
+            <i class="bi bi-plus-circle"></i> Create New Record
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- UPDATE MODAL -->
+  <div class="modal fade" [class.show]="isUpdateModalOpen" [style.display]="isUpdateModalOpen ? 'block' : 'none'"
+    tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-warning">
-                <h5 class="modal-title">
-                    <i class="bi bi-pencil-square"></i> Update Record
-                </h5>
-                <button type="button" class="btn-close" (click)="closeUpdateModal()"></button>
-            </div>
-            <div class="modal-body">
-                <form [formGroup]="updateForm">
-                    <div class="mb-3">
-                        <label for="updateCategory" class="form-label">Category <span class="text-danger">*</span></label>
-                        <input 
-                            type="text" 
-                            id="updateCategory" 
-                            formControlName="category" 
-                            class="form-control"
-                            [class.is-invalid]="updateForm.get('category')?.invalid && updateForm.get('category')?.touched"
-                        />
-                        <div class="invalid-feedback" *ngIf="updateForm.get('category')?.invalid && updateForm.get('category')?.touched">
-                            Category is required
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="updateDate" class="form-label">Repair Date <span class="text-danger">*</span></label>
-                        <input 
-                            type="date" 
-                            id="updateDate" 
-                            formControlName="repair_date" 
-                            class="form-control"
-                            [class.is-invalid]="updateForm.get('repair_date')?.invalid && updateForm.get('repair_date')?.touched"
-                        />
-                        <div class="invalid-feedback" *ngIf="updateForm.get('repair_date')?.invalid && updateForm.get('repair_date')?.touched">
-                            Repair date is required
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="updateDescription" class="form-label">Description <span class="text-danger">*</span></label>
-                        <textarea 
-                            id="updateDescription" 
-                            formControlName="description" 
-                            class="form-control"
-                            rows="4"
-                            [class.is-invalid]="updateForm.get('description')?.invalid && updateForm.get('description')?.touched"
-                        ></textarea>
-                        <div class="invalid-feedback" *ngIf="updateForm.get('description')?.invalid && updateForm.get('description')?.touched">
-                            Description is required
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" (click)="closeUpdateModal()">
-                    <i class="bi bi-x-circle"></i> Cancel
-                </button>
-                <button type="button" class="btn btn-success" (click)="saveUpdate()">
-                    <i class="bi bi-check-circle"></i> Save
-                </button>
-            </div>
+      <div class="modal-content">
+        <div class="modal-header bg-warning">
+          <h5 class="modal-title">
+            <i class="bi bi-pencil-square"></i> Update Record
+          </h5>
+          <button type="button" class="btn-close" (click)="closeUpdateModal()"></button>
         </div>
-    </div>
-</div>
-<div class="modal-backdrop fade" [class.show]="isUpdateModalOpen" *ngIf="isUpdateModalOpen" (click)="closeUpdateModal()"></div>
+        <div class="modal-body">
+          <form [formGroup]="updateForm">
+            <div class="mb-3">
+              <label for="updateCategory" class="form-label">Category <span class="text-danger">*</span></label>
+              <input type="text" id="updateCategory" formControlName="category" class="form-control"
+                [class.is-invalid]="updateForm.get('category')?.invalid && updateForm.get('category')?.touched" />
+              <div class="invalid-feedback"
+                *ngIf="updateForm.get('category')?.invalid && updateForm.get('category')?.touched">
+                Category is required
+              </div>
+            </div>
 
-<!-- CREATE MODAL -->
-<div class="modal fade" [class.show]="isCreateModalOpen" [style.display]="isCreateModalOpen ? 'block' : 'none'" tabindex="-1">
+            <div class="mb-3">
+              <label for="updateDate" class="form-label">Repair Date <span class="text-danger">*</span></label>
+              <input type="date" id="updateDate" formControlName="repair_date" class="form-control"
+                [class.is-invalid]="updateForm.get('repair_date')?.invalid && updateForm.get('repair_date')?.touched" />
+              <div class="invalid-feedback"
+                *ngIf="updateForm.get('repair_date')?.invalid && updateForm.get('repair_date')?.touched">
+                Repair date is required
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="updateDescription" class="form-label">Description <span class="text-danger">*</span></label>
+              <textarea id="updateDescription" formControlName="description" class="form-control" rows="4"
+                [class.is-invalid]="updateForm.get('description')?.invalid && updateForm.get('description')?.touched"></textarea>
+              <div class="invalid-feedback"
+                *ngIf="updateForm.get('description')?.invalid && updateForm.get('description')?.touched">
+                Description is required
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeUpdateModal()">
+            <i class="bi bi-x-circle"></i> Cancel
+          </button>
+          <button type="button" class="btn btn-success" (click)="saveUpdate()">
+            <i class="bi bi-check-circle"></i> Save
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade" [class.show]="isUpdateModalOpen" *ngIf="isUpdateModalOpen"
+    (click)="closeUpdateModal()"></div>
+
+  <!-- CREATE MODAL -->
+  <div class="modal fade" [class.show]="isCreateModalOpen" [style.display]="isCreateModalOpen ? 'block' : 'none'"
+    tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-success text-white">
-                <h5 class="modal-title">
-                    <i class="bi bi-plus-circle"></i> Create New Record
-                </h5>
-                <button type="button" class="btn-close btn-close-white" (click)="closeCreateModal()"></button>
-            </div>
-            <div class="modal-body">
-                <form [formGroup]="createForm">
-                    <div class="mb-3">
-                        <label for="createVin" class="form-label">VIN <span class="text-danger">*</span></label>
-                        <input 
-                            type="text" 
-                            id="createVin" 
-                            formControlName="vin" 
-                            class="form-control"
-                            [class.is-invalid]="createForm.get('vin')?.invalid && createForm.get('vin')?.touched"
-                        />
-                        <div class="invalid-feedback" *ngIf="createForm.get('vin')?.invalid && createForm.get('vin')?.touched">
-                            VIN is required
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="createCategory" class="form-label">Category <span class="text-danger">*</span></label>
-                        <input 
-                            type="text" 
-                            id="createCategory" 
-                            formControlName="category" 
-                            class="form-control"
-                            [class.is-invalid]="createForm.get('category')?.invalid && createForm.get('category')?.touched"
-                        />
-                        <div class="invalid-feedback" *ngIf="createForm.get('category')?.invalid && createForm.get('category')?.touched">
-                            Category is required
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="createDate" class="form-label">Repair Date <span class="text-danger">*</span></label>
-                        <input 
-                            type="date" 
-                            id="createDate" 
-                            formControlName="repair_date" 
-                            class="form-control"
-                            [class.is-invalid]="createForm.get('repair_date')?.invalid && createForm.get('repair_date')?.touched"
-                        />
-                        <div class="invalid-feedback" *ngIf="createForm.get('repair_date')?.invalid && createForm.get('repair_date')?.touched">
-                            Repair date is required
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="createDescription" class="form-label">Description <span class="text-danger">*</span></label>
-                        <textarea 
-                            id="createDescription" 
-                            formControlName="description" 
-                            class="form-control"
-                            rows="4"
-                            [class.is-invalid]="createForm.get('description')?.invalid && createForm.get('description')?.touched"
-                        ></textarea>
-                        <div class="invalid-feedback" *ngIf="createForm.get('description')?.invalid && createForm.get('description')?.touched">
-                            Description is required
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" (click)="closeCreateModal()">
-                    <i class="bi bi-x-circle"></i> Cancel
-                </button>
-                <button type="button" class="btn btn-success" (click)="saveNewRecord()">
-                    <i class="bi bi-check-circle"></i> Save
-                </button>
-            </div>
+      <div class="modal-content">
+        <div class="modal-header bg-success text-white">
+          <h5 class="modal-title">
+            <i class="bi bi-plus-circle"></i> Create New Record
+          </h5>
+          <button type="button" class="btn-close btn-close-white" (click)="closeCreateModal()"></button>
         </div>
+        <div class="modal-body">
+          <form [formGroup]="createForm">
+            <div class="mb-3">
+              <label for="createVin" class="form-label">VIN <span class="text-danger">*</span></label>
+              <input type="text" id="createVin" formControlName="vin" class="form-control"
+                [class.is-invalid]="createForm.get('vin')?.invalid && createForm.get('vin')?.touched" />
+              <div class="invalid-feedback" *ngIf="createForm.get('vin')?.invalid && createForm.get('vin')?.touched">
+                VIN is required
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="createCategory" class="form-label">Category <span class="text-danger">*</span></label>
+              <input type="text" id="createCategory" formControlName="category" class="form-control"
+                [class.is-invalid]="createForm.get('category')?.invalid && createForm.get('category')?.touched" />
+              <div class="invalid-feedback"
+                *ngIf="createForm.get('category')?.invalid && createForm.get('category')?.touched">
+                Category is required
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="createDate" class="form-label">Repair Date <span class="text-danger">*</span></label>
+              <input type="date" id="createDate" formControlName="repair_date" class="form-control"
+                [class.is-invalid]="createForm.get('repair_date')?.invalid && createForm.get('repair_date')?.touched" />
+              <div class="invalid-feedback"
+                *ngIf="createForm.get('repair_date')?.invalid && createForm.get('repair_date')?.touched">
+                Repair date is required
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="createDescription" class="form-label">Description <span class="text-danger">*</span></label>
+              <textarea id="createDescription" formControlName="description" class="form-control" rows="4"
+                [class.is-invalid]="createForm.get('description')?.invalid && createForm.get('description')?.touched"></textarea>
+              <div class="invalid-feedback"
+                *ngIf="createForm.get('description')?.invalid && createForm.get('description')?.touched">
+                Description is required
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeCreateModal()">
+            <i class="bi bi-x-circle"></i> Cancel
+          </button>
+          <button type="button" class="btn btn-success" (click)="saveNewRecord()">
+            <i class="bi bi-check-circle"></i> Save
+          </button>
+        </div>
+      </div>
     </div>
+  </div>
+  <div class="modal-backdrop fade" [class.show]="isCreateModalOpen" *ngIf="isCreateModalOpen"
+    (click)="closeCreateModal()"></div>
 </div>
-<div class="modal-backdrop fade" [class.show]="isCreateModalOpen" *ngIf="isCreateModalOpen" (click)="closeCreateModal()"></div>

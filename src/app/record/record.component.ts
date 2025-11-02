@@ -14,24 +14,23 @@ import { CommonModule, DatePipe } from '@angular/common';
     styleUrls: ['./record.scss'],
 })
 export class RecordComponent implements OnInit, OnDestroy {
-    // Search Section
+  
     searchVin: string = '';
     searchedVehicle: Vehicle | null = null;
     searchedRecords: VehicleRecord[] = [];
     searchLoading: boolean = false;
     searchPerformed: boolean = false;
 
-    // Dropdown Section
+  
     vins: string[] = [];
     selectedVin: string | null = null;
     dropdownRecords: VehicleRecord[] = [];
 
-    // Update Modal
+ 
     isUpdateModalOpen: boolean = false;
     selectedRecordId: string | null = null;
     updateForm: FormGroup;
 
-    // Create Modal
     isCreateModalOpen: boolean = false;
     createForm: FormGroup;
 
@@ -41,14 +40,13 @@ export class RecordComponent implements OnInit, OnDestroy {
         private recordService: VehicleRecordService,
         private cdr: ChangeDetectorRef
     ) {
-        // Initialize Update Form
+
         this.updateForm = new FormGroup({
             category: new FormControl('', Validators.required),
             repair_date: new FormControl('', Validators.required),
             description: new FormControl('', Validators.required)
         });
 
-        // Initialize Create Form
         this.createForm = new FormGroup({
             vin: new FormControl('', Validators.required),
             category: new FormControl('', Validators.required),
@@ -61,12 +59,12 @@ export class RecordComponent implements OnInit, OnDestroy {
         this.loadVins();
     }
 
-    // Load all VINs for dropdown
     loadVins(): void {
         const sub = this.recordService.getAllVins().subscribe({
             next: (vins) => {
                 this.vins = vins;
                 console.log('VINs loaded:', this.vins);
+                this.cdr.detectChanges();
             },
             error: (err) => {
                 console.error('Failed to load VINs:', err);
@@ -76,7 +74,6 @@ export class RecordComponent implements OnInit, OnDestroy {
         this.subscriptions.add(sub);
     }
 
-    // SEARCH SECTION
     searchVehicle(): void {
         if (!this.searchVin || this.searchVin.trim() === '') {
             alert('Please enter a VIN to search.');
@@ -85,17 +82,33 @@ export class RecordComponent implements OnInit, OnDestroy {
 
         this.searchLoading = true;
         this.searchPerformed = false;
+        this.searchedVehicle = null;
+        this.searchedRecords = [];
+        this.cdr.detectChanges(); 
 
         const sub = this.recordService.findVehicleByVin(this.searchVin.trim()).subscribe({
-            next: (vehicle) => {
-                this.searchedVehicle = vehicle;
+            next: (vehicle: Vehicle | null) => {
+                console.log("vehicle value: ", vehicle);
+                
+                this.searchLoading = false;
+                this.searchPerformed = true;
+
                 if (vehicle) {
-                    this.loadSearchRecords(this.searchVin.trim());
+                    console.log('Vehicle fetched:', vehicle);
+                    this.searchedVehicle = vehicle;
+                    this.searchedRecords = vehicle.vehicleRecords || [];
+                    console.log("searched Vehicle value: ", this.searchedVehicle);
+                    console.log("searched Records: ", this.searchedRecords);
                 } else {
+                    this.searchedVehicle = null;
                     this.searchedRecords = [];
-                    this.searchLoading = false;
-                    this.searchPerformed = true;
+                    alert('No vehicle found for the given VIN.');
                 }
+
+                console.log("searchLoading: ", this.searchLoading);
+                console.log("searchPerformed: ", this.searchPerformed);
+                
+                this.cdr.detectChanges();
             },
             error: (err) => {
                 console.error('Error searching vehicle:', err);
@@ -104,25 +117,10 @@ export class RecordComponent implements OnInit, OnDestroy {
                 this.searchPerformed = true;
                 this.searchedVehicle = null;
                 this.searchedRecords = [];
+                this.cdr.detectChanges();
             }
         });
-        this.subscriptions.add(sub);
-    }
 
-    loadSearchRecords(vin: string): void {
-        const sub = this.recordService.getRecordsByVin(vin).subscribe({
-            next: (records) => {
-                this.searchedRecords = records;
-                this.searchLoading = false;
-                this.searchPerformed = true;
-            },
-            error: (err) => {
-                console.error('Error loading search records:', err);
-                this.searchedRecords = [];
-                this.searchLoading = false;
-                this.searchPerformed = true;
-            }
-        });
         this.subscriptions.add(sub);
     }
 
@@ -131,32 +129,33 @@ export class RecordComponent implements OnInit, OnDestroy {
         this.searchedVehicle = null;
         this.searchedRecords = [];
         this.searchPerformed = false;
+        this.searchLoading = false;
+        this.cdr.detectChanges();
     }
 
-    // DROPDOWN SECTION
     onVinSelect(): void {
         if (!this.selectedVin) {
-            this.dropdownRecords = [];
             return;
         }
 
         const sub = this.recordService.getRecordsByVin(this.selectedVin).subscribe({
             next: (records) => {
                 this.dropdownRecords = records;
+                this.cdr.detectChanges();
             },
             error: (err) => {
                 console.error('Error fetching records:', err);
                 alert('Failed to load records for selected VIN.');
                 this.dropdownRecords = [];
+                this.cdr.detectChanges();
             }
         });
         this.subscriptions.add(sub);
     }
 
-    // UPDATE OPERATIONS
     openUpdateModal(record: VehicleRecord): void {
         this.selectedRecordId = record.id || null;
-        
+
         const repairDate = record.repair_date instanceof Date
             ? record.repair_date.toISOString().split('T')[0]
             : record.repair_date;
@@ -168,12 +167,14 @@ export class RecordComponent implements OnInit, OnDestroy {
         });
 
         this.isUpdateModalOpen = true;
+        this.cdr.detectChanges();
     }
 
     closeUpdateModal(): void {
         this.isUpdateModalOpen = false;
         this.updateForm.reset();
         this.selectedRecordId = null;
+        this.cdr.detectChanges();
     }
 
     saveUpdate(): void {
@@ -188,8 +189,7 @@ export class RecordComponent implements OnInit, OnDestroy {
             next: (updatedRecord) => {
                 alert('Record updated successfully!');
                 this.closeUpdateModal();
-                
-                // Refresh data
+
                 this.loadVins();
                 if (this.selectedVin) {
                     this.onVinSelect();
@@ -197,6 +197,7 @@ export class RecordComponent implements OnInit, OnDestroy {
                 if (this.searchPerformed && this.searchVin) {
                     this.searchVehicle();
                 }
+                this.cdr.detectChanges();
             },
             error: (err) => {
                 console.error('Error updating record:', err);
@@ -206,7 +207,6 @@ export class RecordComponent implements OnInit, OnDestroy {
         this.subscriptions.add(sub);
     }
 
-    // DELETE OPERATIONS
     deleteRecord(record: VehicleRecord): void {
         if (!record.id) return;
 
@@ -217,8 +217,7 @@ export class RecordComponent implements OnInit, OnDestroy {
             next: (success) => {
                 if (success) {
                     alert('Record deleted successfully!');
-                    
-                    // Refresh data
+
                     this.loadVins();
                     if (this.selectedVin) {
                         this.onVinSelect();
@@ -226,6 +225,7 @@ export class RecordComponent implements OnInit, OnDestroy {
                     if (this.searchPerformed && this.searchVin) {
                         this.searchVehicle();
                     }
+                    this.cdr.detectChanges();
                 } else {
                     alert('Failed to delete record.');
                 }
@@ -238,15 +238,16 @@ export class RecordComponent implements OnInit, OnDestroy {
         this.subscriptions.add(sub);
     }
 
-    // CREATE OPERATIONS
     openCreateModal(): void {
         this.isCreateModalOpen = true;
         this.createForm.reset();
+        this.cdr.detectChanges();
     }
 
     closeCreateModal(): void {
         this.isCreateModalOpen = false;
         this.createForm.reset();
+        this.cdr.detectChanges();
     }
 
     saveNewRecord(): void {
@@ -261,12 +262,13 @@ export class RecordComponent implements OnInit, OnDestroy {
             next: (response) => {
                 alert('Record created successfully!');
                 this.closeCreateModal();
-                
+
                 // Refresh data
                 this.loadVins();
                 if (this.selectedVin === recordData.vin) {
                     this.onVinSelect();
                 }
+                this.cdr.detectChanges();
             },
             error: (err) => {
                 console.error('Error creating record:', err);
