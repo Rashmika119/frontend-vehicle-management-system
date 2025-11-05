@@ -12,13 +12,13 @@ import {skip, map, filter,take} from 'rxjs/operators'
 export class VehiclesGraphqlService {
     constructor(private apollo: Apollo) { }
 
-    getVehicles(): Observable<Vehicle[]> {
-        console.log('GraphQL: Fetching all vehicles...');
+    getVehicles(page:number,limit:number): Observable<Vehicle[]> {
+        console.log(`GraphQL: Fetching all vehicles...Page ${page} ,Limit ${limit} `);
         return this.apollo
             .watchQuery({
                 query: gql`
-                    query {
-                        getAllVehicles {
+                    query ($pagination:PaginationInput){
+                        getAllVehicles(pagination:$pagination) {
                             id
                             first_name
                             last_name
@@ -31,11 +31,15 @@ export class VehiclesGraphqlService {
                         }
                     }
                 `,
+                variables:{
+                    pagination:{page,limit},
+                },
                 fetchPolicy: 'network-only'
             })
             .valueChanges.pipe(
                 map((result: any) => {
                     console.log('GraphQL: Vehicles fetched:', result?.data?.getAllVehicles?.length || 0);
+                    console.log("page number by looking from graphql service: ",page)
                     return result?.data?.getAllVehicles || [];
                 })
             );
@@ -253,6 +257,37 @@ findVehicleByVin(vin: string): Observable<Vehicle> {
                 })
             );
     }
+
+getAllVehicleVins(): Observable<{ vins: string[]; totalCount: number }> {
+  console.log('GraphQL: Fetching all unique VINs...');
+  return this.apollo
+    .query<{ getAllVehicles: Array<{ vin: string }> }>({
+      query: gql`
+        query {
+          getAllVehicles {
+            vin
+          }
+        }
+      `,
+      fetchPolicy: 'network-only',
+    })
+    .pipe(
+      map((result: any) => {
+        const records = result?.data?.getAllVehicles || [];
+        const allVins: string[] = records
+          .map((r: any) => r?.vin)
+          .filter((vin: any): vin is string => !!vin);
+        const vehicleVins = Array.from(new Set(allVins));
+        const totalCount = vehicleVins.length;
+
+        console.log('Unique VINs fetched:', vehicleVins);
+        console.log('Total VIN count:', totalCount);
+
+        return { vins: vehicleVins, totalCount };
+      })
+    );
+}
+
 
     createVehicleRecord(recordData: CreateRecordDTO): Observable<VehicleRecord> {
         console.log('GraphQL: Creating record:', recordData);

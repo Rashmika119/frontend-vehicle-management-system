@@ -10,8 +10,8 @@ import { Observable } from "rxjs";
 export class VehicleRecordService {
     constructor(private graphService: VehiclesGraphqlService) { }
 
-    getVehicles(): Observable<Vehicle[]> {
-        return this.graphService.getVehicles();
+    getVehicles(page:number,limit:number): Observable<Vehicle[]> {
+        return this.graphService.getVehicles(page,limit);
     }
 
     updateVehicles(id: string, vehicle: Vehicle): Observable<any> {

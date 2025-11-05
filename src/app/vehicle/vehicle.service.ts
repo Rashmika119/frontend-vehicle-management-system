@@ -9,8 +9,11 @@ import { Vehicle } from "./vehicle.model";
 export class VehicleService {
     constructor(private graphService: VehiclesGraphqlService) { }
 
-    getVehicles(): Observable<Vehicle[]> {
-        return this.graphService.getVehicles();
+    getVehicles(page:number,limit:number): Observable<Vehicle[]> {
+        return this.graphService.getVehicles(page,limit);
+    }
+    getAllVehicleVins():Observable<{vins:string[];totalCount:number}>{
+        return this.graphService.getAllVehicleVins();
     }
 
     updateVehicles(id: string, vehicle: Vehicle): Observable<any> {

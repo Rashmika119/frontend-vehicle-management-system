@@ -25,19 +25,54 @@ export class VehicleComponent implements OnInit, OnDestroy {
   selectedModel: string = '';
   selectedVehicle: Vehicle | null = null;
   vehicleToDelete: Vehicle | null = null;
+  currentPage:number=1;
+  limit:number=20;
+  totalItems:number=0;
+  totalPages:number=0;
 
   private subscriptions: Subscription = new Subscription();
 
   constructor(private vehicleService: VehicleService) { }
 
   ngOnInit(): void {
+    this.loadTotalCount();
     this.loadVehicles();
   }
 
   loadVehicles(): void {
-    console.log('Loading vehicles...');
-    this.vehicles$ = this.vehicleService.getVehicles();
+    console.log(`Loading vehicles for page ${this.currentPage}`);
+    this.vehicles$ = this.vehicleService.getVehicles(this.currentPage,this.limit);
   }
+
+  loadTotalCount():void{
+    this.subscriptions.add(
+      this.vehicleService.getAllVehicleVins().subscribe(result=>{
+        this.totalItems=result.totalCount;
+        this.totalPages=Math.ceil(this.totalItems/this.limit)
+        console.log(`Total VINs: ${this.totalItems},Total Pages :${this.totalPages}`);
+      })
+    )
+  }
+
+goToPage(page: number): void {
+  if (page < 1 || page > this.totalPages) {
+    console.log("page is out of bound ", page);
+    return;
+  }
+  this.currentPage = page;
+  console.log("current page: ", this.currentPage);
+  this.loadVehicles();
+}
+
+  getPageNumbers(): number[] {
+  return Array.from({ length: this.totalPages }, (_, i) => i + 1);
+}
+  // changePage(page:number):void{
+  //   if(page>=1 && page<=this.totalPages){
+  //     this.currentPage=page;
+  //     this.loadVehicles();
+  //   }
+  // }
 
   searchVehiclesByModel(): void {
     if (!this.selectedModel || this.selectedModel.trim() === '') {
