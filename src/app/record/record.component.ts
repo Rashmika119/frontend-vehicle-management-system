@@ -231,7 +231,7 @@ export class RecordComponent implements OnInit, OnDestroy {
         const confirmed = confirm('Are you sure you want to delete this record?');
         if (!confirmed) return;
 
-        const sub = this.recordService.deleteVehicle(record.id).subscribe({
+        const sub = this.recordService.deleteRecord(record.id).subscribe({
             next: (success) => {
                 if (success) {
                     alert('Record deleted successfully!');
