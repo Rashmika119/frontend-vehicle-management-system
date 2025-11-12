@@ -72,7 +72,7 @@ export class VehiclesGraphqlService {
                     $vin: String!
                     $manufactured_date: DateTime!
                 ) {
-                    updateVehiclle(
+                    updateVehicle(
                         id: $id
                         vehicle: {
                             first_name: $first_name
@@ -112,7 +112,7 @@ export class VehiclesGraphqlService {
                 if (result.errors) {
                     throw new Error(result.errors[0].message);
                 }
-                return result.data?.updateVehiclle;
+                return result.data?.updateVehicle;
             })
         );
     }
@@ -258,7 +258,7 @@ findVehicleByVin(vin: string): Observable<Vehicle> {
             );
     }
 
-getAllVehicleVins(): Observable<{ vins: string[]; totalCount: number }> {
+getAllVehicleVins(): Observable<{vins:string[]; totalCount:number}> {
   console.log('GraphQL: Fetching all unique VINs...');
   return this.apollo
     .query<{ getAllVehicles: Array<{ vin: string }> }>({
@@ -274,16 +274,17 @@ getAllVehicleVins(): Observable<{ vins: string[]; totalCount: number }> {
     .pipe(
       map((result: any) => {
         const records = result?.data?.getAllVehicles || [];
+        console.log("vehicle details :",records)
         const allVins: string[] = records
           .map((r: any) => r?.vin)
           .filter((vin: any): vin is string => !!vin);
         const vehicleVins = Array.from(new Set(allVins));
         const totalCount = vehicleVins.length;
 
-        console.log('Unique VINs fetched:', vehicleVins);
-        console.log('Total VIN count:', totalCount);
-
-        return { vins: vehicleVins, totalCount };
+        console.log('vehicle VINs fetched:', vehicleVins);
+        console.log('Total vehicle VIN count:', totalCount);
+        
+        return {vins:vehicleVins,totalCount};
       })
     );
 }

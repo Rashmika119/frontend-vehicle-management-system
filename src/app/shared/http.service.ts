@@ -7,8 +7,8 @@ import { lastValueFrom } from "rxjs";
 })
 
 export class HttpService{
-private baseUrl = 'http://localhost:3000/file'; // Import/download endpoints
-  private jobUrl = 'http://localhost:3000/job';   // Export endpoint
+private baseUrl = 'http://localhost:3000/file'; 
+  private jobUrl = 'http://localhost:3000/job';   
 
   constructor(private http: HttpClient) {}
 

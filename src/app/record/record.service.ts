@@ -10,7 +10,7 @@ import { Observable } from "rxjs";
 export class VehicleRecordService {
     constructor(private graphService: VehiclesGraphqlService) { }
 
-    getVehicles(page:number,limit:number): Observable<Vehicle[]> {
+    getVehicles(page:number=1,limit:number=20): Observable<Vehicle[]> {
         return this.graphService.getVehicles(page,limit);
     }
 
@@ -28,6 +28,10 @@ export class VehicleRecordService {
 
     getAllVins(): Observable<string[]> {
         return this.graphService.getAllUniqueVins();
+    }
+
+    getAllVehicleVins():Observable<{vins:string[]; totalCount:number}>{
+        return this.graphService.getAllVehicleVins();
     }
 
     getRecordsByVin(vin: string): Observable<VehicleRecord[]> {

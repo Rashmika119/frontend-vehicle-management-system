@@ -5,6 +5,7 @@ import { Vehicle } from '../vehicle/vehicle.model';
 import { CreateRecordDTO, UpdateRecordDTO, VehicleRecord } from './record.model';
 import { VehicleRecordService } from './record.service';
 import { CommonModule, DatePipe } from '@angular/common';
+import { VehicleService } from '../vehicle/vehicle.service';
 
 @Component({
     selector: 'veh-record',
@@ -21,8 +22,9 @@ export class RecordComponent implements OnInit, OnDestroy {
     searchLoading: boolean = false;
     searchPerformed: boolean = false;
 
-  
+    totalVinCount:number=0;
     vins: string[] = [];
+    vehicleVins:string[]=[];
     selectedVin: string | null = null;
     dropdownRecords: VehicleRecord[] = [];
 
@@ -57,6 +59,7 @@ export class RecordComponent implements OnInit, OnDestroy {
 
     ngOnInit(): void {
         this.loadVins();
+        this.loadVehicleVins();
     }
 
     loadVins(): void {
@@ -69,6 +72,22 @@ export class RecordComponent implements OnInit, OnDestroy {
             error: (err) => {
                 console.error('Failed to load VINs:', err);
                 alert('Failed to load VINs.');
+            }
+        });
+        this.subscriptions.add(sub);
+    }
+
+        loadVehicleVins(): void {
+        const sub = this.recordService.getAllVehicleVins().subscribe({
+            next: ({vins,totalCount}) => {
+                this.vehicleVins = vins;
+                this.totalVinCount = totalCount;
+                console.log('Vehicle VINs loaded:', this.vehicleVins);
+                this.cdr.detectChanges();
+            },
+            error: (err) => {
+                console.error('Failed to load vehicle VINs:', err);
+                alert('Failed to load vehicle VINs.');
             }
         });
         this.subscriptions.add(sub);
@@ -137,7 +156,6 @@ export class RecordComponent implements OnInit, OnDestroy {
         if (!this.selectedVin) {
             return;
         }
-
         const sub = this.recordService.getRecordsByVin(this.selectedVin).subscribe({
             next: (records) => {
                 this.dropdownRecords = records;
@@ -219,14 +237,16 @@ export class RecordComponent implements OnInit, OnDestroy {
                     alert('Record deleted successfully!');
 
                     this.loadVins();
-                    if (this.selectedVin) {
+                    if (this.selectedVin===record.vin) {
                         this.onVinSelect();
                     }
                     if (this.searchPerformed && this.searchVin) {
                         this.searchVehicle();
                     }
+                    this.loadVins();
                     this.cdr.detectChanges();
                 } else {
+                    
                     alert('Failed to delete record.');
                 }
             },
@@ -257,17 +277,21 @@ export class RecordComponent implements OnInit, OnDestroy {
         }
 
         const recordData: CreateRecordDTO = this.createForm.value;
-
+        console.log('Creating records for VIN: ', recordData.vin)
         const sub = this.recordService.createRecord(recordData).subscribe({
             next: (response) => {
+                if(!response?.id){
+                    alert('Failed to create record. No ID returned.');
+                    return;
+                }
                 alert('Record created successfully!');
                 this.closeCreateModal();
 
-                // Refresh data
                 this.loadVins();
                 if (this.selectedVin === recordData.vin) {
                     this.onVinSelect();
                 }
+                this.loadVins();
                 this.cdr.detectChanges();
             },
             error: (err) => {

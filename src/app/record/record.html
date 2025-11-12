@@ -38,36 +38,36 @@
 
           <!-- Search Results -->
           @if(searchPerformed && !searchLoading){
-            @if(searchedVehicle){
-              <div>
-                <h3>Vehicle Details</h3>
-                <p><strong>VIN:</strong> {{ searchedVehicle.vin }}</p>
-                <p><strong>Owner:</strong> {{ searchedVehicle.first_name }} {{ searchedVehicle.last_name }}</p>
-                <p><strong>Car:</strong> {{ searchedVehicle.car_make }} {{ searchedVehicle.car_model }}</p>
-                <p><strong>Manufactured:</strong> {{ searchedVehicle.manufactured_date }}</p>
-                <p><strong>Age:</strong> {{ searchedVehicle.age_of_the_vehicle }}</p>
+          @if(searchedVehicle){
+          <div>
+            <h3>Vehicle Details</h3>
+            <p><strong>VIN:</strong> {{ searchedVehicle.vin }}</p>
+            <p><strong>Owner:</strong> {{ searchedVehicle.first_name }} {{ searchedVehicle.last_name }}</p>
+            <p><strong>Car:</strong> {{ searchedVehicle.car_make }} {{ searchedVehicle.car_model }}</p>
+            <p><strong>Manufactured:</strong> {{ searchedVehicle.manufactured_date }}</p>
+            <p><strong>Age:</strong> {{ searchedVehicle.age_of_the_vehicle }}</p>
 
-                <h4 class="mt-4">Records</h4>
-                @if(searchedRecords.length > 0){
-                  <div>
-                    @for(rec of searchedRecords; track rec.id){
-                      <div class="border p-3 mb-3 bg-light rounded">
-                        <p><strong>Category:</strong> {{ rec.category }}</p>
-                        <p><strong>Repair Date:</strong> {{ rec.repair_date | date:'yyyy-MM-dd' }}</p>
-                        <p class="mb-0"><strong>Description:</strong> {{ rec.description }}</p>
-                      </div>
-                    }
-                  </div>
-                }@else{
-                  <p class="text-muted">No records found</p>
-                }
+            <h4 class="mt-4">Records</h4>
+            @if(searchedRecords.length > 0){
+            <div>
+              @for(rec of searchedRecords; track rec.id){
+              <div class="border p-3 mb-3 bg-light rounded">
+                <p><strong>Category:</strong> {{ rec.category }}</p>
+                <p><strong>Repair Date:</strong> {{ rec.repair_date | date:'yyyy-MM-dd' }}</p>
+                <p class="mb-0"><strong>Description:</strong> {{ rec.description }}</p>
               </div>
+              }
+            </div>
             }@else{
-              <div class="alert alert-danger text-center">
-                <i class="bi bi-x-circle"></i>
-                No details available regarding this VIN.
-              </div>
+            <p class="text-muted">No records found</p>
             }
+          </div>
+          }@else{
+          <div class="alert alert-danger text-center">
+            <i class="bi bi-x-circle"></i>
+            No details available regarding this VIN.
+          </div>
+          }
           }
         </div>
       </div>
@@ -124,7 +124,7 @@
             </div>
 
 
-            
+
           </div>
 
           <div *ngIf="selectedVin && dropdownRecords.length === 0" class="alert alert-warning text-center mt-3">
@@ -224,9 +224,12 @@
         <div class="modal-body">
           <form [formGroup]="createForm">
             <div class="mb-3">
-              <label for="createVin" class="form-label">VIN <span class="text-danger">*</span></label>
-              <input type="text" id="createVin" formControlName="vin" class="form-control"
-                [class.is-invalid]="createForm.get('vin')?.invalid && createForm.get('vin')?.touched" />
+              <label for="createVin" class="form-label fw">Select a VIN <span class="text-danger">*</span></label>
+              <select id="createVin" formControlName="vin" class="form-select"
+                [class.is-invalid]="createForm.get('vin')?.invalid && createForm.get('vin')?.touched">
+                <option value="" disabled selected>Select a VIN</option>
+                <option *ngFor="let vin of vehicleVins" [value]="vin">{{ vin }}</option>
+              </select>
               <div class="invalid-feedback" *ngIf="createForm.get('vin')?.invalid && createForm.get('vin')?.touched">
                 VIN is required
               </div>

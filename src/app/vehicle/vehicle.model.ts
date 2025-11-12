@@ -10,6 +10,5 @@ export interface Vehicle {
     vin: string;
     manufactured_date: string | Date; 
     age_of_the_vehicle?: number;
-
     vehicleRecords?: VehicleRecord[];
 }
