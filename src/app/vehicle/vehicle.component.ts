@@ -149,38 +149,46 @@ goToPage(page: number): void {
     this.vehicleToDelete = null;
   }
 
-  deleteVehicle(): Boolean {
+  deleteVehicle(): void {
     if (!this.vehicleToDelete) {
       console.error('No vehicle selected for deletion');
-      return false;
+      return;
     }
 
     const vehicleId = this.vehicleToDelete.id;
     console.log('Deleting vehicle:', vehicleId);
 
+    this.vehicleToDelete = null;
+ 
     const sub = this.vehicleService.deleteVehicle(vehicleId)
       .pipe(take(1))
       .subscribe({
         next: success => {
-          if (success) {
+          this.loadVehicles();
+
+          setTimeout(()=>{
+            if (success) {
             console.log('Vehicle deleted successfully');
-            this.vehicleToDelete = null;
-            this.loadVehicles();
             alert('Vehicle deleted successfully!');
           } else {
             alert('Vehicle deletion failed.');
           }
+        },0);
+
         },
-        error: err => {
-          console.error('Delete failed:', err);
+      error: (err) => {
+        this.loadVehicles();
+        setTimeout(() => {
           alert('Failed to delete vehicle. Please try again.');
-        }
+        }, 0);
+        console.error('Delete failed:', err);
+      }
       });
 
     this.subscriptions.add(sub);
-    return true;
+ 
   }
-
+  
 
   ngOnDestroy(): void {
     if (this.subscriptions) {

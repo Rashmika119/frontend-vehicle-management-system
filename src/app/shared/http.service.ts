@@ -23,7 +23,7 @@ private baseUrl = 'http://localhost:3000/file';
 
     try {
       const response = await lastValueFrom(
-        this.http.post(`${this.baseUrl}/import`, formData)
+        this.http.post(`${this.jobUrl}/import`, formData)
       );
       console.log('CSV uploaded successfully', response);
       return response;
