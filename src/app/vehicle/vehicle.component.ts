@@ -2,7 +2,7 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Vehicle } from './vehicle.model';
 
 import { Observable, Subscription, take } from 'rxjs';
-import { FormsModule } from '@angular/forms';
+import { FormControl, FormGroup, FormsModule, Validators } from '@angular/forms';
 import { AsyncPipe, CommonModule, DatePipe } from '@angular/common';
 import { VehicleService } from './vehicle.service';
 
@@ -29,10 +29,20 @@ export class VehicleComponent implements OnInit, OnDestroy {
   limit:number=20;
   totalItems:number=0;
   totalPages:number=0;
+  // updateForm: FormGroup;
 
   private subscriptions: Subscription = new Subscription();
-
   constructor(private vehicleService: VehicleService) { }
+  //           this.updateForm = new FormGroup({
+  //           first_name: new FormControl('', Validators.required),
+  //           last_name: new FormControl('', Validators.required),
+  //           email: new FormControl('', Validators.required),
+  //           car_model: new FormControl('', Validators.required),
+  //           vin: new FormControl('', Validators.required),
+  //           manufactured_date: new FormControl('', Validators.required),
+
+  //       });
+  // }
 
   ngOnInit(): void {
     this.loadTotalCount();
@@ -104,6 +114,13 @@ goToPage(page: number): void {
       return;
     }
 
+    const requiredFields:(keyof Vehicle)[]=['first_name','last_name','email','car_model','vin','manufactured_date'];
+    for(const field of requiredFields){
+      if(!this.selectedVehicle[field] || this.selectedVehicle[field].toString().trim()===''){
+          alert(`Please fill the ${field} field before updating.`);
+          return;
+      }
+    }
     console.log('Updating vehicle:', this.selectedVehicle.id);
 
     const sub = this.vehicleService.updateVehicles(this.selectedVehicle.id, this.selectedVehicle)
